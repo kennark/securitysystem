@@ -13,7 +13,9 @@
 #define MPU_WAKE_THRESHOLD 128  // ~0.5 g
 
 // 433MHz RF Receiver
-#define PIN_RF_RECEIVER 7
+#define PIN_RF_RECEIVER_ON 7
+#define PIN_RF_RECEIVER_OFF 6
+#define PIN_RF_RECEIVER_ALARM 5
 
 // =======  Touch Wake  =======
 #define PIN_TOUCH_WAKE 5    // Capacitive touch or button pin for wake/disarm
@@ -61,13 +63,13 @@
 // Motion sensor (GPIO4) and touch pin (GPIO5) wake the device from sleep
 
 // ==================== FEATURE TOGGLES FOR TESTING ====================
-#define ENABLE_MOTION_SENSOR 1          // Test MPU6500 motion detection
+#define ENABLE_MOTION_SENSOR 0          // Test MPU6500 motion detection
 #define ENABLE_BUZZER 1                 // Test buzzer patterns
 #define ENABLE_RELAY_CONTROL 1          // Test relay power control
 #define ENABLE_RF_RECEIVER 1            // Disabled until RF module ready
-#define ENABLE_BLUETOOTH 1              // Test BLE communication
-#define ENABLE_TOUCH_WAKE 1             // Test touch pin wake functionality
-#define ENABLE_LIGHT_SLEEP 1            // Test sleep/wake cycles
+#define ENABLE_BLUETOOTH 0              // Test BLE communication
+#define ENABLE_TOUCH_WAKE 0             // Test touch pin wake functionality
+#define ENABLE_LIGHT_SLEEP 0            // Test sleep/wake cycles
 
 // Debug
 #define DEBUG_MODE true                  // Enable serial debugging

@@ -44,6 +44,7 @@ bool SecuritySystem::begin() {
     
     // Store global pointer for ISR access
     g_securitySystem = this;
+    g_rfReceiver = &rfReceiver;
     
     // Initialize pins
     initializePins();
@@ -64,7 +65,7 @@ bool SecuritySystem::begin() {
     Serial.println("[INIT] Buzzer enabled");
     buzzer.begin();
     buzzer.setEventQueue(&eventQueue);
-    //buzzer.playChirp(BuzzerPattern::DOUBLE_BEEP);  // Startup chirp
+    buzzer.playChirp(BuzzerPattern::SINGLE_BEEP);  // Startup chirp
     #else
     Serial.println("[SKIP] Buzzer disabled");
     #endif
@@ -85,6 +86,14 @@ bool SecuritySystem::begin() {
     }
     #else
     Serial.println("[SKIP] Bluetooth disabled");
+    #endif
+    
+    #if ENABLE_RF_RECEIVER
+    Serial.println("[INIT] RF Receiver enabled");
+    rfReceiver.begin();
+    rfReceiver.setEventQueue(&eventQueue);
+    #else
+    Serial.println("[SKIP] RF Receiver disabled");
     #endif
     
     #if ENABLE_MOTION_SENSOR
@@ -132,6 +141,11 @@ void SecuritySystem::update() {
         eventQueue.enqueue(touchEvent);
         if (DEBUG_MODE) Serial.println("[EVENT] Touch detected!");
     }
+    #endif
+    
+    // Process RF receiver button presses
+    #if ENABLE_RF_RECEIVER
+    rfReceiver.update();
     #endif
     
     // Process event queue
@@ -207,9 +221,12 @@ void SecuritySystem::processEvent(const Event& event) {
                     disarm();
                     break;
                 case CommandType::TRIGGER_ALARM:
-                    triggerAlarm(MotionEvent::THEFT);
-                    break;
-                default:
+                    if (getState() != SecurityState::ALARM_TRIGGERED) {
+                        triggerAlarm(MotionEvent::NONE);  // No motion event, just trigger alarm
+                    }
+                    else {
+                        stopAlarm();
+                    }
                     break;
             }
             break;
@@ -267,8 +284,10 @@ void SecuritySystem::arm() {
     if (status.state == SecurityState::DISARMED) {
         Serial.println("ARMING system...");
         
+        #if ENABLE_MOTION_SENSOR
         // Calibrate motion sensor baseline
         motionSensor.calibrate();
+        #endif
 
         relay.disablePower();
         
@@ -315,6 +334,12 @@ void SecuritySystem::triggerAlarm(MotionEvent event) {
             Serial.println("BUMP DETECTED - Warning alarm starting...");
             changeState(SecurityState::PRE_ALARM);
             buzzer.playChirp(BuzzerPattern::WARNING);
+        } else if (event == MotionEvent::NONE) {
+            // No motion - treat as alarm from button press
+            Serial.println("ALARM TRIGGERED by button press");
+            changeState(SecurityState::ALARM_TRIGGERED);
+            buzzer.startAlarm();
+            status.alarmTriggerCount++;
         }
     }
 }
@@ -341,12 +366,6 @@ void SecuritySystem::changeState(SecurityState newState) {
 
 void SecuritySystem::updateStateMachine() {
     // State machine logic is handled by processEvent()
-}
-
-void SecuritySystem::handleRFInput() {
-    if (!config.rfEnabled) return;
-    
-    
 }
 
 void SecuritySystem::handleBluetoothInput() {

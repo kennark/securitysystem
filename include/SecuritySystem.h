@@ -66,7 +66,6 @@ private:
     void checkStateTimeouts();
     
     // Input Handlers
-    void handleRFInput();
     void handleBluetoothInput();
     void handleMotionInput();
     

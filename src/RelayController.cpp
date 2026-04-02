@@ -5,7 +5,7 @@ RelayController::RelayController()
 }
 
 void RelayController::begin() {
-    pinMode(PIN_RELAY, OUTPUT);
+    pinMode(PIN_RELAY, OUTPUT_OPEN_DRAIN);
     disablePower();
     Serial.println("Relay initialized on pin " + String(PIN_RELAY) + " (power disabled)");
 }
