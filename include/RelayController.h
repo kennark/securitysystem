@@ -6,7 +6,7 @@
 
 class RelayController {
 public:
-    RelayController(int pin = PIN_RELAY);
+    RelayController();
     
     void begin();
     
@@ -18,7 +18,6 @@ public:
     bool isPowered() const { return powered; }
     
 private:
-    int relayPin;
     bool powered;
 };
 

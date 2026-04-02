@@ -25,7 +25,7 @@
 #define BUZZER_NOTE_SPEED 250         // ms per note in patterns
 
 // =======  Relay  =======
-#define PIN_RELAY 15
+#define PIN_RELAY 12
 
 // Status LED (optional)
 #define PIN_STATUS_LED 2

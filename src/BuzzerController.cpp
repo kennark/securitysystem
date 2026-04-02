@@ -5,38 +5,32 @@
 // Duration is fixed per note (BUZZER_NOTE_SPEED) for simplicity
 // Frequency of 0 means silence
 
-// Single beep: 200ms total
 const BuzzerStep PATTERN_SINGLE_BEEP[] = {
     BUZZER_FREQ_BEEP,
 };
 
-// Double beep: 400ms total
 const BuzzerStep PATTERN_DOUBLE_BEEP[] = {
     BUZZER_FREQ_BEEP,
     0,  // Silence
     BUZZER_FREQ_BEEP,
 };
 
-// Warning pattern: 1 second (100ms on, 100ms off, 100ms on, 700ms off) - repeats
 const BuzzerStep PATTERN_WARNING[] = {
     BUZZER_FREQ_WARNING,
     0,  // Silence
     BUZZER_FREQ_WARNING,
 };
 
-// Arm confirmation: increasing frequency 300ms total
 const BuzzerStep PATTERN_ARM_CONFIRM[] = {
     BUZZER_FREQ_ARM,
     BUZZER_FREQ_ARM + 200,
 };
 
-// Disarm confirmation: decreasing frequency 300ms total
 const BuzzerStep PATTERN_DISARM_CONFIRM[] = {
     BUZZER_FREQ_DISARM,
     BUZZER_FREQ_DISARM - 200,
 };
 
-// Error beep: reuse warning pattern
 const BuzzerStep PATTERN_ERROR_BEEP[] = {
     BUZZER_FREQ_WARNING,
     0,  // Silence

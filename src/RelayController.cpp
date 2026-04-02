@@ -1,19 +1,18 @@
 #include "RelayController.h"
 
-RelayController::RelayController(int pin)
-    : relayPin(pin), powered(false) {
+RelayController::RelayController()
+    : powered(false) {
 }
 
 void RelayController::begin() {
-    pinMode(relayPin, OUTPUT);
-    digitalWrite(relayPin, LOW);  // LOW = power disabled
-    powered = false;
-    Serial.println("Relay initialized on pin " + String(relayPin) + " (power disabled)");
+    pinMode(PIN_RELAY, OUTPUT);
+    disablePower();
+    Serial.println("Relay initialized on pin " + String(PIN_RELAY) + " (power disabled)");
 }
-
+// Relay (and its light) is active on LOW
 void RelayController::enablePower() {
     if (!powered) {
-        digitalWrite(relayPin, HIGH);
+        digitalWrite(PIN_RELAY, LOW);
         powered = true;
         Serial.println("Power ENABLED via relay");
     }
@@ -21,7 +20,7 @@ void RelayController::enablePower() {
 
 void RelayController::disablePower() {
     if (powered) {
-        digitalWrite(relayPin, LOW);
+        digitalWrite(PIN_RELAY, HIGH);
         powered = false;
         Serial.println("Power DISABLED via relay");
     }
