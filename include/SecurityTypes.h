@@ -73,6 +73,8 @@ struct SystemStatus {
     MotionEvent lastEvent;
     unsigned long lastMotionTime;
     unsigned long stateChangeTime;
+    unsigned long lastAlarmTriggerTime;
+    bool alarmActive;
     bool relayState;                    // true = power connected
     bool bluetoothConnected;
     uint8_t batteryPercent;

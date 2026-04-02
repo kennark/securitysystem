@@ -21,6 +21,7 @@ public:
     void begin();
     void update();  // Call regularly to handle pattern timing
     void setEventQueue(EventQueue* queue) { eventQueuePtr = queue; }
+    void setAlarmStatusPtr(bool* ptr) { alarmActivePtr = ptr; }
     
     void startAlarm();
     void playChirp(BuzzerPattern pattern);
@@ -30,9 +31,9 @@ public:
 
 private:
     EventQueue* eventQueuePtr;
+    bool* alarmActivePtr;
     BuzzerPattern currentPattern;
     bool playing;
-    bool alarmActive;
     unsigned long patternStartTime;
     int currentStepIndex;
     const BuzzerStep* currentSequence;

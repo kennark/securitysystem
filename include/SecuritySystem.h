@@ -25,6 +25,7 @@ public:
     void arm();
     void disarm();
     void triggerAlarm(MotionEvent event);
+    void playAlarm();
     void stopAlarm();
     
     // Status

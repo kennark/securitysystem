@@ -41,9 +41,9 @@ const BuzzerStep PATTERN_ERROR_BEEP[] = {
 
 BuzzerController::BuzzerController() 
     : eventQueuePtr(nullptr),
+      alarmActivePtr(nullptr),
       currentPattern(BuzzerPattern::SINGLE_BEEP),
       playing(false),
-      alarmActive(false),
       patternStartTime(0),
       currentStepIndex(0),
       currentSequence(nullptr),
@@ -66,7 +66,9 @@ void BuzzerController::begin() {
 void BuzzerController::startAlarm() {
     if (!playing) {
         playing = true;
-        alarmActive = true;
+        if (alarmActivePtr) {
+            *alarmActivePtr = true;
+        }
         patternStartTime = millis();
         updateAlarm();
         Serial.println("Alarm tone started");
@@ -74,7 +76,6 @@ void BuzzerController::startAlarm() {
 }
 
 void BuzzerController::playChirp(BuzzerPattern pattern) {
-    if (!playing) {
         currentPattern = pattern;
         
         // Select appropriate sequence based on pattern
@@ -111,14 +112,13 @@ void BuzzerController::playChirp(BuzzerPattern pattern) {
         }
         
         playSequence(sequence, length);
-    }
 }
 
 void BuzzerController::update() {
     if (!playing) {
         return;
     }
-    if (alarmActive) {
+    if (alarmActivePtr && *alarmActivePtr) {
         updateAlarm();
     } else {
         updateSequence();
@@ -127,13 +127,15 @@ void BuzzerController::update() {
 
 void BuzzerController::stopSound() {
     if (playing) {
-        alarmActive = false;
+        if (alarmActivePtr) {
+            *alarmActivePtr = false;
+        }
         playing = false;
         ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
         Serial.println("Sound stopped");
         
         // Post BUZZER_DONE event
-        if (!alarmActive && eventQueuePtr) {
+        if ((!alarmActivePtr || !*alarmActivePtr) && eventQueuePtr) {
             Event doneEvent(EventType::BUZZER_DONE);
             eventQueuePtr->enqueue(doneEvent);
         }
@@ -187,7 +189,7 @@ void BuzzerController::updateSequence() {
 }
 
 void BuzzerController::updateAlarm() {
-    if (alarmActive) {
+    if (alarmActivePtr && *alarmActivePtr) {
         unsigned long now = millis();
         unsigned long elapsed = now - patternStartTime;
 

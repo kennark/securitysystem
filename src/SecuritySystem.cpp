@@ -65,6 +65,7 @@ bool SecuritySystem::begin() {
     Serial.println("[INIT] Buzzer enabled");
     buzzer.begin();
     buzzer.setEventQueue(&eventQueue);
+    buzzer.setAlarmStatusPtr(&status.alarmActive);
     buzzer.playChirp(BuzzerPattern::SINGLE_BEEP);  // Startup chirp
     #else
     Serial.println("[SKIP] Buzzer disabled");
@@ -215,16 +216,21 @@ void SecuritySystem::processEvent(const Event& event) {
             CommandType cmd = (CommandType)event.value;
             switch (cmd) {
                 case CommandType::ARM:
+                    if (status.alarmActive) {
+                        stopAlarm();
+                    }
                     arm();
                     break;
                 case CommandType::DISARM:
+                    if (status.alarmActive) { 
+                        stopAlarm();
+                    }
                     disarm();
                     break;
                 case CommandType::TRIGGER_ALARM:
-                    if (getState() != SecurityState::ALARM_TRIGGERED) {
-                        triggerAlarm(MotionEvent::NONE);  // No motion event, just trigger alarm
-                    }
-                    else {
+                    if (!status.alarmActive) {
+                        playAlarm();
+                    } else {
                         stopAlarm();
                     }
                     break;
@@ -292,13 +298,13 @@ void SecuritySystem::arm() {
         relay.disablePower();
         
         changeState(SecurityState::ARMED);
-        buzzer.playChirp(BuzzerPattern::ARM_CONFIRM);
         
         Serial.println("System ARMED - Monitoring active");
     }
     else {
         Serial.println("System already ARMED or in transition");
     }
+    buzzer.playChirp(BuzzerPattern::ARM_CONFIRM);
 }
 
 void SecuritySystem::disarm() {
@@ -309,13 +315,13 @@ void SecuritySystem::disarm() {
         relay.enablePower();
         
         changeState(SecurityState::DISARMED);
-        buzzer.playChirp(BuzzerPattern::DISARM_CONFIRM);
         
         Serial.println("System DISARMED");
     }
     else {
         Serial.println("System already DISARMED");
     }
+    buzzer.playChirp(BuzzerPattern::DISARM_CONFIRM);
 }
 
 void SecuritySystem::triggerAlarm(MotionEvent event) {
@@ -327,28 +333,31 @@ void SecuritySystem::triggerAlarm(MotionEvent event) {
             // Strong movement - immediate full alarm for theft
             Serial.println("THEFT DETECTED - FULL ALARM!");
             changeState(SecurityState::ALARM_TRIGGERED);
-            buzzer.startAlarm();
-            status.alarmTriggerCount++;
+            playAlarm();
         } else if (event == MotionEvent::BUMP) {
             // Small movement - start warning period
             Serial.println("BUMP DETECTED - Warning alarm starting...");
             changeState(SecurityState::PRE_ALARM);
             buzzer.playChirp(BuzzerPattern::WARNING);
-        } else if (event == MotionEvent::NONE) {
-            // No motion - treat as alarm from button press
-            Serial.println("ALARM TRIGGERED by button press");
-            changeState(SecurityState::ALARM_TRIGGERED);
-            buzzer.startAlarm();
-            status.alarmTriggerCount++;
         }
     }
 }
 
+void SecuritySystem::playAlarm() {
+    buzzer.startAlarm();
+    status.alarmActive = true;
+    status.lastAlarmTriggerTime = millis();
+    status.alarmTriggerCount++;
+}
+
 void SecuritySystem::stopAlarm() {
+    Serial.println("Stopping alarm");
+    buzzer.stopSound();
+    status.alarmActive = false;
+    
     if (status.state == SecurityState::ALARM_TRIGGERED || 
         status.state == SecurityState::PRE_ALARM) {
-        Serial.println("Stopping alarm");
-        buzzer.stopSound();
+        changeState(SecurityState::ARMED);
     }
 }
 
