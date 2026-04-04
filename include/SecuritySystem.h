@@ -24,7 +24,7 @@ public:
     // State Management
     void arm();
     void disarm();
-    void triggerAlarm(MotionEvent event);
+    void triggerAlarm();
     void playAlarm();
     void stopAlarm();
     

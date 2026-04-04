@@ -63,7 +63,7 @@
 // Motion sensor (GPIO4) and touch pin (GPIO5) wake the device from sleep
 
 // ==================== FEATURE TOGGLES FOR TESTING ====================
-#define ENABLE_MOTION_SENSOR 0          // Test MPU6500 motion detection
+#define ENABLE_MOTION_SENSOR 1          // Test MPU6500 motion detection
 #define ENABLE_BUZZER 1                 // Test buzzer patterns
 #define ENABLE_RELAY_CONTROL 1          // Test relay power control
 #define ENABLE_RF_RECEIVER 1            // Disabled until RF module ready

@@ -193,7 +193,9 @@ void BuzzerController::updateAlarm() {
         unsigned long now = millis();
         unsigned long elapsed = now - patternStartTime;
 
-        if (elapsed >= ALARM_TIMEOUT) {
+        // This is for manually started alarms. Normally the alarm should be handled by SecuritySystem. 
+        // The timeout is raised by 1 second here to avoid conflicts with other timeout handler
+        if (elapsed >= ALARM_TIMEOUT + 1000) {
             stopSound();
             Serial.println("Alarm timeout reached, stopping alarm tone");
             return;

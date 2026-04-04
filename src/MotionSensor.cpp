@@ -25,7 +25,7 @@ bool MotionSensor::begin() {
     mpu.setWakeOnMotionThreshold(MPU_WAKE_THRESHOLD);  // 128 = ~0.5 g
 
     delay(100);
-    return calibrate();
+    return true;
 }
 
 bool MotionSensor::calibrate() {

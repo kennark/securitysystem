@@ -46,9 +46,6 @@ bool SecuritySystem::begin() {
     g_securitySystem = this;
     g_rfReceiver = &rfReceiver;
     
-    // Initialize pins
-    initializePins();
-    
     // Initialize components with feature toggles
     #if ENABLE_MOTION_SENSOR
     Serial.println("[INIT] Motion Sensor enabled");
@@ -56,7 +53,6 @@ bool SecuritySystem::begin() {
         Serial.println("[ERROR] Motion sensor failed!");
         return false;
     }
-    motionSensor.enableDetection(); // remove this
     #else
     Serial.println("[SKIP] Motion Sensor disabled");
     #endif
@@ -290,12 +286,11 @@ void SecuritySystem::arm() {
     if (status.state == SecurityState::DISARMED) {
         Serial.println("ARMING system...");
         
-        #if ENABLE_MOTION_SENSOR
-        // Calibrate motion sensor baseline
-        motionSensor.calibrate();
-        #endif
-
         relay.disablePower();
+
+        #if ENABLE_MOTION_SENSOR
+        motionSensor.enableDetection();
+        #endif
         
         changeState(SecurityState::ARMED);
         
@@ -314,6 +309,10 @@ void SecuritySystem::disarm() {
         stopAlarm();
         relay.enablePower();
         
+        #if ENABLE_MOTION_SENSOR
+        motionSensor.disableDetection();
+        #endif
+
         changeState(SecurityState::DISARMED);
         
         Serial.println("System DISARMED");
@@ -324,22 +323,12 @@ void SecuritySystem::disarm() {
     buzzer.playChirp(BuzzerPattern::DISARM_CONFIRM);
 }
 
-void SecuritySystem::triggerAlarm(MotionEvent event) {
+void SecuritySystem::triggerAlarm() {
     if (status.state == SecurityState::ARMED) {
-        status.lastEvent = event;
-        status.lastMotionTime = millis();
         
-        if (event == MotionEvent::THEFT) {
-            // Strong movement - immediate full alarm for theft
-            Serial.println("THEFT DETECTED - FULL ALARM!");
-            changeState(SecurityState::ALARM_TRIGGERED);
-            playAlarm();
-        } else if (event == MotionEvent::BUMP) {
-            // Small movement - start warning period
-            Serial.println("BUMP DETECTED - Warning alarm starting...");
-            changeState(SecurityState::PRE_ALARM);
-            buzzer.playChirp(BuzzerPattern::WARNING);
-        }
+        Serial.println("THEFT DETECTED - FULL ALARM!");
+        changeState(SecurityState::ALARM_TRIGGERED);
+        playAlarm();
     }
 }
 
@@ -373,9 +362,6 @@ void SecuritySystem::changeState(SecurityState newState) {
 }
 
 
-void SecuritySystem::updateStateMachine() {
-    // State machine logic is handled by processEvent()
-}
 
 void SecuritySystem::handleBluetoothInput() {
     if (!config.bluetoothEnabled) return;
@@ -387,25 +373,17 @@ void SecuritySystem::handleMotionInput() {
     float motionValue = motionSensor.getInterruptData();
     Serial.print("Motion value (g): ");
     Serial.println(motionValue);
+    status.lastMotionTime = millis();
     if (status.state == SecurityState::ARMED) {
         // Get latest motion data from sensor
-        // MotionData data = motionSensor.getLatestData();
-        // float acceleration = sqrt(data.accelX * data.accelX + 
-        //                          data.accelY * data.accelY + 
-        //                          data.accelZ * data.accelZ);
-        
-        // TODO: Update MotionSensor to provide getLatestData() method
-        // For now, trigger THEFT alarm on any motion interrupt
-        triggerAlarm(MotionEvent::THEFT);
-    }
-}
 
-void SecuritySystem::initializePins() {
-    //pinMode(relayPin, OUTPUT);
-    pinMode(PIN_STATUS_LED, OUTPUT);
-    
-    //digitalWrite(relayPin, HIGH);
-    digitalWrite(PIN_STATUS_LED, LOW);
+        // TODO: For small acceleration values, play a warning sound and possibly give a timer. 
+        // If another bump is detected during that time, sound the alarm
+        // Maybe add another check for reading the angle of vehicle (gyroscope)
+        
+        // For now, trigger THEFT alarm on any motion interrupt
+        triggerAlarm();
+    }
 }
 
 void SecuritySystem::setConfig(const SecurityConfig& cfg) {
