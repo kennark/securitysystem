@@ -37,7 +37,6 @@ public:
     SecurityConfig getConfig() const { return config; }
     
     // Wake Flags (public for ISR access)
-    volatile bool motionWakeFlag = false;
     volatile bool touchWakeFlag = false;
     
 private:
@@ -59,9 +58,7 @@ private:
     unsigned long prealarmStartTime = 0;
     unsigned long alarmStartTime = 0;
 
-    
     // State Machine
-    void updateStateMachine();
     void changeState(SecurityState newState);
     void processEvent(const Event& event);
     void checkStateTimeouts();
@@ -74,7 +71,6 @@ private:
     void enterLightSleep();
     
     // Helper Methods
-    void initializePins();
     void loadConfig();
     void saveConfig();
     void resetAlarmCounters();
@@ -87,7 +83,6 @@ private:
 extern SecuritySystem* g_securitySystem;
 
 // ISR Handlers
-void IRAM_ATTR onMotionWake();
 void IRAM_ATTR onTouchWake();
 
 #endif // SECURITY_SYSTEM_H

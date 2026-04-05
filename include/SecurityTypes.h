@@ -54,7 +54,8 @@ struct SecurityConfig {
     // Motion Detection
     float motionThreshold;
     float tiltThreshold;
-    uint32_t preAlarmDelay;
+    uint32_t warningTimeout;
+    uint32_t warningDebounce;
     
     // Alarm Settings
     uint32_t alarmDuration;
@@ -71,7 +72,7 @@ struct SecurityConfig {
 struct SystemStatus {
     SecurityState state;
     MotionEvent lastEvent;
-    unsigned long lastMotionTime;
+    unsigned long lastMotionWarningTime;
     unsigned long stateChangeTime;
     unsigned long lastAlarmTriggerTime;
     bool alarmActive;

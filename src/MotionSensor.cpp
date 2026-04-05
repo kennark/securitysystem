@@ -1,5 +1,15 @@
 #include "MotionSensor.h"
 
+// Global pointer for ISR access
+MotionSensor* g_motionSensor = nullptr;
+
+// ISR Handler - set wake flag (no queue access in ISR)
+void IRAM_ATTR onMotionWake() {
+    if (g_motionSensor) {
+        g_motionSensor->motionWakeFlag = true;
+    }
+}
+
 MotionSensor::MotionSensor(int sda, int scl) {
     Wire.begin(sda, scl);
 }
@@ -24,7 +34,11 @@ bool MotionSensor::begin() {
 
     mpu.setWakeOnMotionThreshold(MPU_WAKE_THRESHOLD);  // 128 = ~0.5 g
 
-    delay(100);
+    delay(50);
+    
+    attachInterrupt(digitalPinToInterrupt(MPU_INT_PIN), onMotionWake, RISING);
+    Serial.println("[INIT] Motion interrupt attached to GPIO" + String(MPU_INT_PIN));
+    
     return true;
 }
 
@@ -65,4 +79,16 @@ float MotionSensor::getInterruptData() {
 
 float MotionSensor::getTemperature() {
     return mpu.getTemperature();
+}
+
+void MotionSensor::update() {
+    if (!eventQueuePtr) return;
+
+    // Check motion wake flag
+    if (motionWakeFlag) {
+        motionWakeFlag = false;
+        Event motionEvent(EventType::MOTION_DETECTED, (uint32_t)MotionEvent::THEFT);
+        eventQueuePtr->enqueue(motionEvent);
+        if (DEBUG_MODE) Serial.println("[EVENT] Motion detected!");
+    }
 }

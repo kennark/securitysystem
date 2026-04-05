@@ -4,12 +4,7 @@
 SecuritySystem* g_securitySystem = nullptr;
 
 // ISR Handlers - set wake flags (no queue access in ISR)
-void IRAM_ATTR onMotionWake() {
-    if (g_securitySystem) {
-        g_securitySystem->motionWakeFlag = true;
-    }
-}
-
+// TODO: Move this to a separate class like TouchController
 void IRAM_ATTR onTouchWake() {
     if (g_securitySystem) {
         g_securitySystem->touchWakeFlag = true;
@@ -19,9 +14,10 @@ void IRAM_ATTR onTouchWake() {
 SecuritySystem::SecuritySystem() {
     
     // Initialize config with defaults
-    config.motionThreshold = MOTION_BUMP_THRESHOLD;
-    config.tiltThreshold = MOTION_THEFT_THRESHOLD;  // Using tiltThreshold field for theft threshold
-    config.preAlarmDelay = PRE_ALARM_DELAY;
+    config.motionThreshold = MOTION_ACCEL_THRESHOLD;
+    config.tiltThreshold = MOTION_TILT_THRESHOLD;
+    config.warningTimeout = TIME_BETWEEN_WARNINGS;
+    config.warningDebounce = WARNING_DEBOUNCE_TIME;
     config.alarmDuration = ALARM_TIMEOUT;
     config.rfEnabled = true;
     config.bluetoothEnabled = true;
@@ -31,7 +27,7 @@ SecuritySystem::SecuritySystem() {
     // Initialize status
     status.state = SecurityState::DISARMED;
     status.lastEvent = MotionEvent::NONE;
-    status.lastMotionTime = 0;
+    status.lastMotionWarningTime = 0;
     status.stateChangeTime = 0;
     status.relayState = true;  // Power connected by default
     status.bluetoothConnected = false;
@@ -45,6 +41,7 @@ bool SecuritySystem::begin() {
     // Store global pointer for ISR access
     g_securitySystem = this;
     g_rfReceiver = &rfReceiver;
+    g_motionSensor = &motionSensor;
     
     // Initialize components with feature toggles
     #if ENABLE_MOTION_SENSOR
@@ -53,6 +50,7 @@ bool SecuritySystem::begin() {
         Serial.println("[ERROR] Motion sensor failed!");
         return false;
     }
+    motionSensor.setEventQueue(&eventQueue);
     #else
     Serial.println("[SKIP] Motion Sensor disabled");
     #endif
@@ -93,11 +91,6 @@ bool SecuritySystem::begin() {
     Serial.println("[SKIP] RF Receiver disabled");
     #endif
     
-    #if ENABLE_MOTION_SENSOR
-    attachInterrupt(digitalPinToInterrupt(MPU_INT_PIN), onMotionWake, RISING);
-    Serial.println("[INIT] Motion interrupt attached to GPIO4");
-    #endif
-    
     #if ENABLE_TOUCH_WAKE
     attachInterrupt(digitalPinToInterrupt(PIN_TOUCH_WAKE), onTouchWake, RISING);
     Serial.println("[INIT] Touch interrupt attached to GPIO5");
@@ -121,16 +114,12 @@ void SecuritySystem::update() {
     buzzer.update();
     #endif
     
-    // Process wake flags and post events
+    // Update motion sensor (check interrupt flag and enqueue events)
     #if ENABLE_MOTION_SENSOR
-    if (motionWakeFlag) {
-        motionWakeFlag = false;
-        Event motionEvent(EventType::MOTION_DETECTED, (uint32_t)MotionEvent::THEFT);
-        eventQueue.enqueue(motionEvent);
-        if (DEBUG_MODE) Serial.println("[EVENT] Motion detected!");
-    }
+    motionSensor.update();
     #endif
     
+    // Process wake flags and post events
     #if ENABLE_TOUCH_WAKE
     if (touchWakeFlag) {
         touchWakeFlag = false;
@@ -252,7 +241,7 @@ void SecuritySystem::checkStateTimeouts() {
     
     if (status.state == SecurityState::PRE_ALARM) {
         // PRE_ALARM timeout: transition to ALARM_TRIGGERED
-        if (now - status.stateChangeTime >= config.preAlarmDelay) {
+        if (now - status.stateChangeTime >= config.warningTimeout) {
             Serial.println("PRE_ALARM timeout - escalating to FULL ALARM");
             changeState(SecurityState::ALARM_TRIGGERED);
             buzzer.startAlarm();
@@ -369,20 +358,32 @@ void SecuritySystem::handleBluetoothInput() {
 }
 
 void SecuritySystem::handleMotionInput() {
-    Serial.println("Motion detected - reading sensor data...");
     float motionValue = motionSensor.getInterruptData();
-    Serial.print("Motion value (g): ");
-    Serial.println(motionValue);
-    status.lastMotionTime = millis();
     if (status.state == SecurityState::ARMED) {
-        // Get latest motion data from sensor
+        if (motionValue > config.motionThreshold) {
+            Serial.println("Motion value over instant threshold");
+            
+            // Get latest motion data from sensor
 
-        // TODO: For small acceleration values, play a warning sound and possibly give a timer. 
-        // If another bump is detected during that time, sound the alarm
-        // Maybe add another check for reading the angle of vehicle (gyroscope)
-        
-        // For now, trigger THEFT alarm on any motion interrupt
-        triggerAlarm();
+            // TODO: For small acceleration values, play a warning sound and possibly give a timer. 
+            // If another bump is detected during that time, sound the alarm
+            // Maybe add another check for reading the angle of vehicle (gyroscope)
+            
+            // For now, trigger THEFT alarm on any motion interrupt
+            triggerAlarm();
+            
+        } else {
+            unsigned long now = millis();
+            if (now - status.lastMotionWarningTime > config.warningTimeout) {
+                Serial.println("Minor motion detected");
+                buzzer.playChirp(BuzzerPattern::WARNING);
+                status.lastMotionWarningTime = now;
+            } else if (now - status.lastMotionWarningTime > config.warningDebounce) {
+                // If we get another motion event within the warning timeout but after the debounce time, trigger the alarm
+                Serial.println("Repeated motion detected");
+                triggerAlarm();
+            }
+        }
     }
 }
 

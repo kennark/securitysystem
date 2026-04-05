@@ -10,7 +10,7 @@
 #define MPU_ADDR 0x68
 #define MPU_INT_PIN 18
 // Choose 1 (= 4 mg) ..... 255 (= 1020 mg); 
-#define MPU_WAKE_THRESHOLD 128  // ~0.5 g
+#define MPU_WAKE_THRESHOLD 128  // ~0.5 g   Value for waking the system up on movements (alarm trigger is handled in SECURITY CONFIGURATION)
 
 // 433MHz RF Receiver
 #define PIN_RF_RECEIVER_ON 7
@@ -33,13 +33,13 @@
 #define PIN_STATUS_LED 2
 
 // ==================== SECURITY CONFIGURATION ====================
-// Motion Detection Thresholds (m/s²)
-#define MOTION_BUMP_THRESHOLD 1.0f       // Low threshold - small bumps (warning)
-#define MOTION_THEFT_THRESHOLD 2.5f      // High threshold - actual theft attempt (full alarm)
-#define MOTION_CHECK_INTERVAL 100        // Check motion every 100ms
+// Motion Detection Thresholds
+#define MOTION_ACCEL_THRESHOLD 2.0f         // Acceleration threshold for detecting sudden jerks (g-force)
+#define MOTION_TILT_THRESHOLD 20          // Tilt threshold for detecting quiet movements (degrees of movement in any direction)
 
 // Alarm Timing (milliseconds)
-#define PRE_ALARM_DELAY 5000UL           // 5 seconds warning period for bumps
+#define TIME_BETWEEN_WARNINGS 5000UL           // 5 seconds warning period for bumps
+#define WARNING_DEBOUNCE_TIME 1500UL           // 1.5 seconds debounce for minor motion warnings (interrupt events)
 #define ALARM_TIMEOUT 10000UL           // 2 minutes max alarm duration
 
 // Buzzer Patterns
