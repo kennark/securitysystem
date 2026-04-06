@@ -9,16 +9,17 @@ public:
     RelayController();
     
     void begin();
+    void setRelayStatePtr(bool* ptr) { relayStatePtr = ptr; }
     
     // Power control
     void enablePower();
     void disablePower();
     
     // Status
-    bool isPowered() const { return powered; }
+    bool isPowered() const { return relayStatePtr ? *relayStatePtr : false; }
     
 private:
-    bool powered;
+    bool* relayStatePtr;
 };
 
 #endif // RELAY_CONTROLLER_H

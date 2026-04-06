@@ -12,8 +12,6 @@ enum class EventType {
     TOUCH_DETECTED,         // Touch pin interrupt triggered
     BLE_COMMAND,            // Command from Bluetooth app
     RF_COMMAND,             // Command from 433MHz remote
-    TIMER_EXPIRED,          // State machine timer (PRE_ALARM, ALARM timeout)
-    RELAY_STATE_CHANGED,    // Relay state confirmation
     SENSOR_ERROR            // Sensor malfunction or I2C error
 };
 

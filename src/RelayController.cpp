@@ -1,7 +1,7 @@
 #include "RelayController.h"
 
 RelayController::RelayController()
-    : powered(false) {
+    : relayStatePtr(nullptr) {
 }
 
 void RelayController::begin() {
@@ -11,17 +11,17 @@ void RelayController::begin() {
 }
 // Relay (and its light) is active on LOW
 void RelayController::enablePower() {
-    if (!powered) {
+    if (relayStatePtr && !*relayStatePtr) {
         digitalWrite(PIN_RELAY, LOW);
-        powered = true;
+        *relayStatePtr = true;
         Serial.println("Power ENABLED via relay");
     }
 }
 
 void RelayController::disablePower() {
-    if (powered) {
+    if (relayStatePtr && *relayStatePtr) {
         digitalWrite(PIN_RELAY, HIGH);
-        powered = false;
+        *relayStatePtr = false;
         Serial.println("Power DISABLED via relay");
     }
 }

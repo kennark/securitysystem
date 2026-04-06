@@ -26,7 +26,6 @@ SecuritySystem::SecuritySystem() {
     
     // Initialize status
     status.state = SecurityState::DISARMED;
-    status.lastEvent = MotionEvent::NONE;
     status.lastMotionWarningTime = 0;
     status.stateChangeTime = 0;
     status.relayState = true;  // Power connected by default
@@ -68,7 +67,7 @@ bool SecuritySystem::begin() {
     #if ENABLE_RELAY_CONTROL
     Serial.println("[INIT] Relay Control enabled");
     relay.begin();
-
+    relay.setRelayStatePtr(&status.relayState);
     relay.enablePower();
     #else
     Serial.println("[SKIP] Relay Control disabled");
@@ -141,7 +140,7 @@ void SecuritySystem::update() {
     }
     
     // Check state timeouts
-    checkStateTimeouts();
+    checkAlarmTimeout();
     
     // Send periodic BLE status
     #if ENABLE_BLUETOOTH
@@ -222,29 +221,16 @@ void SecuritySystem::processEvent(const Event& event) {
             }
             break;
         }
-            
-        case EventType::TIMER_EXPIRED:
-            checkStateTimeouts();
-            break;
-            
         default:
+            Serial.println("[WARNING] Unhandled event type");
             break;
     }
 }
 
-void SecuritySystem::checkStateTimeouts() {
+void SecuritySystem::checkAlarmTimeout() {
     unsigned long now = millis();
     
-    if (status.state == SecurityState::PRE_ALARM) {
-        // PRE_ALARM timeout: transition to ALARM_TRIGGERED
-        if (now - status.stateChangeTime >= config.warningTimeout) {
-            Serial.println("PRE_ALARM timeout - escalating to FULL ALARM");
-            changeState(SecurityState::ALARM_TRIGGERED);
-            buzzer.startAlarm();
-            relay.disablePower();
-            status.alarmTriggerCount++;
-        }
-    } else if (status.state == SecurityState::ALARM_TRIGGERED) {
+    if (status.state == SecurityState::ALARM_TRIGGERED) {
         // ALARM timeout: return to ARMED state
         if (now - status.stateChangeTime >= config.alarmDuration) {
             Serial.println("ALARM timeout - returning to ARMED state");
@@ -328,8 +314,7 @@ void SecuritySystem::stopAlarm() {
     buzzer.stopSound();
     status.alarmActive = false;
     
-    if (status.state == SecurityState::ALARM_TRIGGERED || 
-        status.state == SecurityState::PRE_ALARM) {
+    if (status.state == SecurityState::ALARM_TRIGGERED) {
         changeState(SecurityState::ARMED);
     }
 }
@@ -386,7 +371,6 @@ void SecuritySystem::printStatus() {
         case SecurityState::DISARMED: Serial.println("DISARMED"); break;
         case SecurityState::ARMING: Serial.println("ARMING"); break;
         case SecurityState::ARMED: Serial.println("ARMED"); break;
-        case SecurityState::PRE_ALARM: Serial.println("PRE-ALARM"); break;
         case SecurityState::ALARM_TRIGGERED: Serial.println("ALARM TRIGGERED"); break;
         case SecurityState::ERROR: Serial.println("ERROR"); break;
     }

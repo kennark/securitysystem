@@ -85,9 +85,10 @@ void MotionSensor::update() {
     if (!eventQueuePtr) return;
 
     // Check motion wake flag
+    // TODO: Possibly move query of motion data inside this event, in case of delays from other parts in future
     if (motionWakeFlag) {
         motionWakeFlag = false;
-        Event motionEvent(EventType::MOTION_DETECTED, (uint32_t)MotionEvent::THEFT);
+        Event motionEvent(EventType::MOTION_DETECTED);
         eventQueuePtr->enqueue(motionEvent);
         if (DEBUG_MODE) Serial.println("[EVENT] Motion detected!");
     }

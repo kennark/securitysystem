@@ -9,15 +9,8 @@ enum class SecurityState {
     DISARMED,           // System off, no monitoring
     ARMING,             // Grace period before armed
     ARMED,              // Monitoring active, motor disabled
-    PRE_ALARM,          // Motion detected, warning period
     ALARM_TRIGGERED,    // Full alarm active
     ERROR               // System error state
-};
-
-enum class MotionEvent {
-    NONE,
-    BUMP,               // Small movement - warning threshold
-    THEFT               // Strong movement - theft/stealing attempt
 };
 
 enum class BuzzerPattern {
@@ -43,21 +36,19 @@ enum CommandType {
 // ==================== STRUCTURES ====================
 
 struct MotionData {
-    float accelX, accelY, accelZ;       // m/s²
-    float gyroX, gyroY, gyroZ;          // deg/s
-    float temp;                          // °C
-    float pitch, roll;                   // degrees
-    unsigned long timestamp;             // milliseconds
+    float accel;                        // m/s² across all axes combined
+    float gyro;                         // degrees of deviation from initial calibration
+    unsigned long timestamp;            // milliseconds
 };
 
 struct SecurityConfig {
     // Motion Detection
     float motionThreshold;
     float tiltThreshold;
-    uint32_t warningTimeout;
-    uint32_t warningDebounce;
     
     // Alarm Settings
+    uint32_t warningTimeout;
+    uint32_t warningDebounce;
     uint32_t alarmDuration;
     
     // Features
@@ -71,9 +62,8 @@ struct SecurityConfig {
 
 struct SystemStatus {
     SecurityState state;
-    MotionEvent lastEvent;
-    unsigned long lastMotionWarningTime;
     unsigned long stateChangeTime;
+    unsigned long lastMotionWarningTime;
     unsigned long lastAlarmTriggerTime;
     bool alarmActive;
     bool relayState;                    // true = power connected

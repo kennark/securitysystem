@@ -61,7 +61,7 @@ private:
     // State Machine
     void changeState(SecurityState newState);
     void processEvent(const Event& event);
-    void checkStateTimeouts();
+    void checkAlarmTimeout();
     
     // Input Handlers
     void handleBluetoothInput();
