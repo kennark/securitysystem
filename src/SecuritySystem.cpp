@@ -227,10 +227,6 @@ void SecuritySystem::processEvent(const Event& event) {
             checkStateTimeouts();
             break;
             
-        case EventType::BUZZER_DONE:
-            // Buzzer pattern finished, continue state machine
-            break;
-            
         default:
             break;
     }
@@ -272,15 +268,15 @@ void SecuritySystem::enterLightSleep() {
 }
 
 void SecuritySystem::arm() {
+    Serial.println("ARMING system...");
+
+    relay.disablePower();
+    buzzer.playChirpBlocking(BuzzerPattern::ARM_CONFIRM);
     if (status.state == SecurityState::DISARMED) {
-        Serial.println("ARMING system...");
-        
-        relay.disablePower();
 
         #if ENABLE_MOTION_SENSOR
         motionSensor.enableDetection();
         #endif
-        
         changeState(SecurityState::ARMED);
         
         Serial.println("System ARMED - Monitoring active");
@@ -288,7 +284,6 @@ void SecuritySystem::arm() {
     else {
         Serial.println("System already ARMED or in transition");
     }
-    buzzer.playChirp(BuzzerPattern::ARM_CONFIRM);
 }
 
 void SecuritySystem::disarm() {
@@ -357,21 +352,13 @@ void SecuritySystem::handleBluetoothInput() {
     
 }
 
+// TODO: Add another check for reading the angle of vehicle (gyroscope)
 void SecuritySystem::handleMotionInput() {
     float motionValue = motionSensor.getInterruptData();
     if (status.state == SecurityState::ARMED) {
         if (motionValue > config.motionThreshold) {
             Serial.println("Motion value over instant threshold");
-            
-            // Get latest motion data from sensor
-
-            // TODO: For small acceleration values, play a warning sound and possibly give a timer. 
-            // If another bump is detected during that time, sound the alarm
-            // Maybe add another check for reading the angle of vehicle (gyroscope)
-            
-            // For now, trigger THEFT alarm on any motion interrupt
             triggerAlarm();
-            
         } else {
             unsigned long now = millis();
             if (now - status.lastMotionWarningTime > config.warningTimeout) {

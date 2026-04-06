@@ -25,6 +25,7 @@ public:
     
     void startAlarm();
     void playChirp(BuzzerPattern pattern);
+    void playChirpBlocking(BuzzerPattern pattern);
     void stopSound();
     
     bool isPlaying() const { return playing; }
@@ -40,6 +41,7 @@ private:
     int sequenceLength;
     
     // Helper methods
+    void selectSequenceForPattern(BuzzerPattern pattern, const BuzzerStep*& sequence, int& length);
     void playSequence(const BuzzerStep* sequence, int length);
     void updateSequence();
 

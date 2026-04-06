@@ -76,42 +76,38 @@ void BuzzerController::startAlarm() {
 }
 
 void BuzzerController::playChirp(BuzzerPattern pattern) {
-        currentPattern = pattern;
-        
-        // Select appropriate sequence based on pattern
-        const BuzzerStep* sequence = nullptr;
-        int length = 0;
-        
-        switch (pattern) {
-            case BuzzerPattern::SINGLE_BEEP:
-                sequence = PATTERN_SINGLE_BEEP;
-                length = sizeof(PATTERN_SINGLE_BEEP) / sizeof(PATTERN_SINGLE_BEEP[0]);
-                break;
-            case BuzzerPattern::DOUBLE_BEEP:
-                sequence = PATTERN_DOUBLE_BEEP;
-                length = sizeof(PATTERN_DOUBLE_BEEP) / sizeof(PATTERN_DOUBLE_BEEP[0]);
-                break;
-            case BuzzerPattern::ARM_CONFIRM:
-                sequence = PATTERN_ARM_CONFIRM;
-                length = sizeof(PATTERN_ARM_CONFIRM) / sizeof(PATTERN_ARM_CONFIRM[0]);
-                break;
-            case BuzzerPattern::DISARM_CONFIRM:
-                sequence = PATTERN_DISARM_CONFIRM;
-                length = sizeof(PATTERN_DISARM_CONFIRM) / sizeof(PATTERN_DISARM_CONFIRM[0]);
-                break;
-            case BuzzerPattern::WARNING:
-                sequence = PATTERN_WARNING;
-                length = sizeof(PATTERN_WARNING) / sizeof(PATTERN_WARNING[0]);
-                break;
-            case BuzzerPattern::ERROR_BEEP:
-                sequence = PATTERN_ERROR_BEEP;
-                length = sizeof(PATTERN_ERROR_BEEP) / sizeof(PATTERN_ERROR_BEEP[0]);
-                break;
-            default:
-                return;
-        }
-        
-        playSequence(sequence, length);
+    currentPattern = pattern;
+    
+    // Select appropriate sequence based on pattern
+    const BuzzerStep* sequence = nullptr;
+    int length = 0;
+    
+    selectSequenceForPattern(pattern, sequence, length);
+    playSequence(sequence, length);
+}
+
+// For playing patterns before a blocking function (like calibrating motion sensor)
+void BuzzerController::playChirpBlocking(BuzzerPattern pattern) {
+    // Select appropriate sequence based on pattern
+    const BuzzerStep* sequence = nullptr;
+    int length = 0;
+    
+    selectSequenceForPattern(pattern, sequence, length);
+    
+    // Play the pattern synchronously
+    if (sequence == nullptr || length <= 0) {
+        return;
+    }
+    
+    for (int i = 0; i < length; i++) {
+        ledcWriteTone(BUZZER_PWM_CHANNEL, sequence[i].frequency);
+        delay(BUZZER_NOTE_SPEED);
+    }
+    
+    // Silence the buzzer
+    ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
+    
+    Serial.println("Chirp pattern completed");
 }
 
 void BuzzerController::update() {
@@ -133,16 +129,44 @@ void BuzzerController::stopSound() {
         playing = false;
         ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
         Serial.println("Sound stopped");
-        
-        // Post BUZZER_DONE event
-        if ((!alarmActivePtr || !*alarmActivePtr) && eventQueuePtr) {
-            Event doneEvent(EventType::BUZZER_DONE);
-            eventQueuePtr->enqueue(doneEvent);
-        }
     }
 }
 
 // ==================== PRIVATE HELPER METHODS ====================
+
+void BuzzerController::selectSequenceForPattern(BuzzerPattern pattern, const BuzzerStep*& sequence, int& length) {
+    sequence = nullptr;
+    length = 0;
+    
+    switch (pattern) {
+        case BuzzerPattern::SINGLE_BEEP:
+            sequence = PATTERN_SINGLE_BEEP;
+            length = sizeof(PATTERN_SINGLE_BEEP) / sizeof(PATTERN_SINGLE_BEEP[0]);
+            break;
+        case BuzzerPattern::DOUBLE_BEEP:
+            sequence = PATTERN_DOUBLE_BEEP;
+            length = sizeof(PATTERN_DOUBLE_BEEP) / sizeof(PATTERN_DOUBLE_BEEP[0]);
+            break;
+        case BuzzerPattern::ARM_CONFIRM:
+            sequence = PATTERN_ARM_CONFIRM;
+            length = sizeof(PATTERN_ARM_CONFIRM) / sizeof(PATTERN_ARM_CONFIRM[0]);
+            break;
+        case BuzzerPattern::DISARM_CONFIRM:
+            sequence = PATTERN_DISARM_CONFIRM;
+            length = sizeof(PATTERN_DISARM_CONFIRM) / sizeof(PATTERN_DISARM_CONFIRM[0]);
+            break;
+        case BuzzerPattern::WARNING:
+            sequence = PATTERN_WARNING;
+            length = sizeof(PATTERN_WARNING) / sizeof(PATTERN_WARNING[0]);
+            break;
+        case BuzzerPattern::ERROR_BEEP:
+            sequence = PATTERN_ERROR_BEEP;
+            length = sizeof(PATTERN_ERROR_BEEP) / sizeof(PATTERN_ERROR_BEEP[0]);
+            break;
+        default:
+            break;
+    }
+}
 
 void BuzzerController::playSequence(const BuzzerStep* sequence, int length) {
     if (sequence == nullptr || length <= 0) {
@@ -159,7 +183,6 @@ void BuzzerController::playSequence(const BuzzerStep* sequence, int length) {
     
     // Set initial frequency
     ledcWriteTone(BUZZER_PWM_CHANNEL, currentSequence[0].frequency);
-    //ledcWriteNote(BUZZER_PWM_CHANNEL, NOTE_G, 6);
 }
 
 void BuzzerController::updateSequence() {
@@ -183,9 +206,6 @@ void BuzzerController::updateSequence() {
         currentStepIndex = currentStep;
         ledcWriteTone(BUZZER_PWM_CHANNEL, currentSequence[currentStepIndex].frequency);
     }
-
-    //Serial.println("Buzzer update - step: " + String(currentStepIndex) + 
-    //              ", freq: " + String(currentSequence[currentStepIndex].frequency) + "length" + String(sequenceLength));
 }
 
 void BuzzerController::updateAlarm() {
