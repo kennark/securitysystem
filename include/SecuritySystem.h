@@ -7,6 +7,7 @@
 #include "EventQueue.h"
 #include "MotionSensor.h"
 #include "RFReceiver.h"
+#include "TouchSensor.h"
 #include "BuzzerController.h"
 #include "BluetoothManager.h"
 #include "RelayController.h"
@@ -47,6 +48,7 @@ private:
     // Components
     MotionSensor motionSensor;
     RFReceiver rfReceiver;
+    TouchSensor touchSensor;
     BuzzerController buzzer;
     BluetoothManager bluetooth;
     RelayController relay;

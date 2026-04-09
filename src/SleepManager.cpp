@@ -13,20 +13,16 @@ void SleepManager::begin() {
     Serial.print("[SLEEP] Wake source configured: GPIO");
     Serial.print(MPU_INT_PIN);
     Serial.println(" (Motion Sensor, rising edge)");
-    
-    /*
-    // PIN_TOUCH_WAKE: Touch/Button pin for manual wake/disarm
-    gpio_wakeup_enable((gpio_num_t)PIN_TOUCH_WAKE, GPIO_INTR_HIGH_LEVEL);
-    Serial.print("[SLEEP] Wake source configured: GPIO");
-    Serial.print(PIN_TOUCH_WAKE);
-    Serial.println(" (Touch Wake, rising edge)");
-    */
 
     // PIN_RF_RECEIVER_ALARM: RF receiver alarm pin
     gpio_wakeup_enable((gpio_num_t)PIN_RF_RECEIVER_ALARM, GPIO_INTR_HIGH_LEVEL);
     Serial.print("[SLEEP] Wake source configured: GPIO");
     Serial.print(PIN_RF_RECEIVER_ALARM);
     Serial.println(" (RF Receiver Alarm, rising edge)");
+
+    // PIN_TOUCH_WAKE: Touch/Button pin for manual wake/disarm
+    esp_sleep_enable_touchpad_wakeup();
+    Serial.println("[SLEEP] Wake source configured: TOUCH");
 
     esp_sleep_enable_gpio_wakeup();
     

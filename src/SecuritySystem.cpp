@@ -3,14 +3,6 @@
 // Global pointer for ISR access
 SecuritySystem* g_securitySystem = nullptr;
 
-// ISR Handlers - set wake flags (no queue access in ISR)
-// TODO: Move this to a separate class like TouchController
-void IRAM_ATTR onTouchWake() {
-    if (g_securitySystem) {
-        g_securitySystem->touchWakeFlag = true;
-    }
-}
-
 SecuritySystem::SecuritySystem() {
     
     // Initialize config with defaults
@@ -43,6 +35,7 @@ bool SecuritySystem::begin() {
     g_securitySystem = this;
     g_rfReceiver = &rfReceiver;
     g_motionSensor = &motionSensor;
+    g_touchSensor = &touchSensor;
     
     // Initialize components with feature toggles
     #if ENABLE_MOTION_SENSOR
@@ -93,8 +86,10 @@ bool SecuritySystem::begin() {
     #endif
     
     #if ENABLE_TOUCH_WAKE
-    attachInterrupt(digitalPinToInterrupt(PIN_TOUCH_WAKE), onTouchWake, RISING);
-    Serial.println("[INIT] Touch interrupt attached to GPIO5");
+    touchSensor.begin();
+    touchSensor.setEventQueue(&eventQueue);
+    Serial.print("[INIT] Touch interrupt attached to GPIO");
+    Serial.println(PIN_TOUCH_WAKE);
     #endif
     
     #if ENABLE_LIGHT_SLEEP
@@ -129,12 +124,7 @@ void SecuritySystem::update() {
     
     // Process wake flags and post events
     #if ENABLE_TOUCH_WAKE
-    if (touchWakeFlag) {
-        touchWakeFlag = false;
-        Event touchEvent(EventType::TOUCH_DETECTED, 0);
-        eventQueue.enqueue(touchEvent);
-        if (DEBUG_MODE) Serial.println("[EVENT] Touch detected!");
-    }
+    touchSensor.update();
     #endif
     
     // Process RF receiver button presses
@@ -240,18 +230,6 @@ void SecuritySystem::checkAlarmTimeout() {
             relay.disablePower();
             changeState(SecurityState::ARMED);
         }
-    }
-}
-
-void SecuritySystem::enterLightSleep() {
-    if (DEBUG_MODE) {
-        Serial.println("Entering light sleep...");
-    }
-    
-    esp_light_sleep_start();
-    
-    if (DEBUG_MODE) {
-        Serial.println("Woke from light sleep");
     }
 }
 

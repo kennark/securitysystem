@@ -17,7 +17,7 @@
 #define PIN_RF_RECEIVER_ALARM 5
 
 // =======  Touch Wake  =======
-#define PIN_TOUCH_WAKE 1    // Capacitive touch pin for wake
+#define PIN_TOUCH_WAKE 1    // Capacitive touch pin for wake, translates to GPIO1
 
 // =======  Buzzer  =======
 #define PIN_BUZZER 4
@@ -64,7 +64,7 @@
 #define ENABLE_RELAY_CONTROL 1          // Test relay power control
 #define ENABLE_RF_RECEIVER 1            // Disabled until RF module ready
 #define ENABLE_BLUETOOTH 0              // Test BLE communication
-#define ENABLE_TOUCH_WAKE 0             // Test touch pin wake functionality
+#define ENABLE_TOUCH_WAKE 1             // Test touch pin wake functionality
 #define ENABLE_LIGHT_SLEEP 1            // Test sleep/wake cycles
 
 // Debug
