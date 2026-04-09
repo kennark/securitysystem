@@ -2,7 +2,6 @@
 #define CONFIG_H
 
 #include <Arduino.h>
-#include <esp_sleep.h>
 
 // =======  MPU6500 (I2C)  =======
 #define PIN_SDA 8
@@ -18,7 +17,7 @@
 #define PIN_RF_RECEIVER_ALARM 5
 
 // =======  Touch Wake  =======
-#define PIN_TOUCH_WAKE 5    // Capacitive touch or button pin for wake/disarm
+#define PIN_TOUCH_WAKE 1    // Capacitive touch pin for wake
 
 // =======  Buzzer  =======
 #define PIN_BUZZER 4
@@ -56,11 +55,8 @@
 #define BLE_COMMAND_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define BLE_STATUS_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a9"
 
-// RF Remote Codes 
-
 // Power Management
-// Note: System uses light sleep when ARMED with BLE enabled
-// Motion sensor (GPIO4) and touch pin (GPIO5) wake the device from sleep
+#define SLEEP_TIMEOUT 10000UL          // Inactivity timeout before entering light sleep
 
 // ==================== FEATURE TOGGLES FOR TESTING ====================
 #define ENABLE_MOTION_SENSOR 1          // Test MPU6500 motion detection
@@ -69,7 +65,7 @@
 #define ENABLE_RF_RECEIVER 1            // Disabled until RF module ready
 #define ENABLE_BLUETOOTH 0              // Test BLE communication
 #define ENABLE_TOUCH_WAKE 0             // Test touch pin wake functionality
-#define ENABLE_LIGHT_SLEEP 0            // Test sleep/wake cycles
+#define ENABLE_LIGHT_SLEEP 1            // Test sleep/wake cycles
 
 // Debug
 #define DEBUG_MODE true                  // Enable serial debugging

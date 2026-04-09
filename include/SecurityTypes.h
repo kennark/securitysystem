@@ -54,7 +54,10 @@ struct SecurityConfig {
     // Features
     bool rfEnabled;
     bool bluetoothEnabled;
-    bool deepSleepEnabled;
+    bool sleepEnabled;
+
+    // Sleep settings
+    uint32_t sleepTimeout; // 0 = off
     
     // Sensitivity
     uint8_t sensitivityLevel;           // 1-5 (5=most sensitive)
@@ -65,6 +68,7 @@ struct SystemStatus {
     unsigned long stateChangeTime;
     unsigned long lastMotionWarningTime;
     unsigned long lastAlarmTriggerTime;
+    unsigned long lastActionTime;
     bool alarmActive;
     bool relayState;                    // true = power connected
     bool bluetoothConnected;

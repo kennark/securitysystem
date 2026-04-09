@@ -10,6 +10,7 @@
 #include "BuzzerController.h"
 #include "BluetoothManager.h"
 #include "RelayController.h"
+#include "SleepManager.h"
 
 class SecuritySystem {
 public:
@@ -49,6 +50,7 @@ private:
     BuzzerController buzzer;
     BluetoothManager bluetooth;
     RelayController relay;
+    SleepManager sleep;
     
     // State
     SystemStatus status;

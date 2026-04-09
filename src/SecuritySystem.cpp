@@ -21,13 +21,15 @@ SecuritySystem::SecuritySystem() {
     config.alarmDuration = ALARM_TIMEOUT;
     config.rfEnabled = true;
     config.bluetoothEnabled = true;
-    config.deepSleepEnabled = false;
+    config.sleepEnabled = true;
     config.sensitivityLevel = 3;
+    config.sleepTimeout = SLEEP_TIMEOUT;
     
     // Initialize status
     status.state = SecurityState::DISARMED;
     status.lastMotionWarningTime = 0;
     status.stateChangeTime = 0;
+    status.lastActionTime = 0;
     status.relayState = true;  // Power connected by default
     status.bluetoothConnected = false;
     status.batteryPercent = 100;
@@ -96,10 +98,17 @@ bool SecuritySystem::begin() {
     #endif
     
     #if ENABLE_LIGHT_SLEEP
-    esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 1);    // Motion sensor on GPIO4
-    esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1);    // Touch pin on GPIO5
-    Serial.println("[INIT] Light sleep wake sources configured");
+    // Initialize SleepManager with dependencies and configure wake sources
+    sleep.setEventQueue(&eventQueue);
+    sleep.setLastActionTime(&status.lastActionTime);
+    sleep.setSleepTimeout(&config.sleepTimeout);
+    sleep.begin();
+    Serial.println("[INIT] Light sleep configured");
     #endif
+    
+    
+    // Initialize lastActionTime to current time (prevents immediate sleep on startup)
+    status.lastActionTime = millis();
     
     status.state = SecurityState::DISARMED;
     Serial.println("[READY] System initialized - State: DISARMED\n");
@@ -136,6 +145,7 @@ void SecuritySystem::update() {
     // Process event queue
     Event event;
     while (eventQueue.dequeue(event)) {
+        status.lastActionTime = millis();  // Track activity time for idle detection
         processEvent(event);
     }
     
@@ -149,12 +159,10 @@ void SecuritySystem::update() {
     }
     #endif
     
-    // Enter light sleep if idle and ARMED
-    #if ENABLE_LIGHT_SLEEP
-    if (status.state == SecurityState::ARMED && eventQueue.empty()) {
-        enterLightSleep();
+    // Check idle timeout and enter sleep if conditions are met (only when ARMED)
+    if (status.state == SecurityState::ARMED && !status.alarmActive) {
+        sleep.update();
     }
-    #endif
 }
 
 void SecuritySystem::processEvent(const Event& event) {
@@ -197,27 +205,21 @@ void SecuritySystem::processEvent(const Event& event) {
         }
             
         case EventType::RF_COMMAND: {
-            CommandType cmd = (CommandType)event.value;
-            switch (cmd) {
-                case CommandType::ARM:
-                    if (status.alarmActive) {
-                        stopAlarm();
-                    }
-                    arm();
-                    break;
-                case CommandType::DISARM:
-                    if (status.alarmActive) { 
-                        stopAlarm();
-                    }
-                    disarm();
-                    break;
-                case CommandType::TRIGGER_ALARM:
-                    if (!status.alarmActive) {
+            if (status.alarmActive) {
+                stopAlarm();
+            } else {
+                CommandType cmd = (CommandType)event.value;
+                switch (cmd) {
+                    case CommandType::ARM:
+                        arm();
+                        break;
+                    case CommandType::DISARM:
+                        disarm();
+                        break;
+                    case CommandType::TRIGGER_ALARM:
                         playAlarm();
-                    } else {
-                        stopAlarm();
-                    }
-                    break;
+                        break;
+                }
             }
             break;
         }
@@ -313,6 +315,8 @@ void SecuritySystem::stopAlarm() {
     Serial.println("Stopping alarm");
     buzzer.stopSound();
     status.alarmActive = false;
+
+    status.lastActionTime = millis();
     
     if (status.state == SecurityState::ALARM_TRIGGERED) {
         changeState(SecurityState::ARMED);

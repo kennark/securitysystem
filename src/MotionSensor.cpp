@@ -27,7 +27,7 @@ bool MotionSensor::begin() {
     mpu.enableAccDLPF(true);
     mpu.setAccDLPF(MPU6500_DLPF_6);
     mpu.setIntPinPolarity(MPU6500_ACT_HIGH);
-    mpu.enableIntLatch(true);
+    mpu.enableIntLatch(false);
     mpu.enableClearIntByAnyRead(false);
 
     mpu.enableInterrupt(MPU6500_WOM_INT);
