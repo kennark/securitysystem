@@ -1,4 +1,4 @@
-#include "MotionSensor.h"
+#include "sensors/MotionSensor.h"
 
 // Global pointer for ISR access
 MotionSensor* g_motionSensor = nullptr;

@@ -1,4 +1,4 @@
-#include "RFReceiver.h"
+#include "input/RFReceiver.h"
 
 // Global pointer for ISR access
 RFReceiver* g_rfReceiver = nullptr;

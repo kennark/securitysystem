@@ -1,4 +1,4 @@
-#include "BluetoothManager.h"
+#include "input/BluetoothManager.h"
 
 // ==================== BLUETOOTH MANAGER IMPLEMENTATION ====================
 

@@ -1,4 +1,4 @@
-#include "BuzzerController.h"
+#include "output/BuzzerController.h"
 
 // ==================== PATTERN SEQUENCES ====================
 // Each pattern is defined as an array of frequency steps

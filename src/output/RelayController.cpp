@@ -1,4 +1,4 @@
-#include "RelayController.h"
+#include "output/RelayController.h"
 
 RelayController::RelayController()
     : relayStatePtr(nullptr) {

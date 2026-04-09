@@ -5,12 +5,12 @@
 #include "SecurityTypes.h"
 #include "Config.h"
 #include "EventQueue.h"
-#include "MotionSensor.h"
-#include "RFReceiver.h"
-#include "TouchSensor.h"
-#include "BuzzerController.h"
-#include "BluetoothManager.h"
-#include "RelayController.h"
+#include "sensors/MotionSensor.h"
+#include "input/RFReceiver.h"
+#include "input/TouchSensor.h"
+#include "output/BuzzerController.h"
+#include "input/BluetoothManager.h"
+#include "output/RelayController.h"
 #include "SleepManager.h"
 
 class SecuritySystem {

@@ -1,4 +1,4 @@
-#include "TouchSensor.h"
+#include "input/TouchSensor.h"
 
 TouchSensor* g_touchSensor = nullptr;
 
