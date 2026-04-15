@@ -14,32 +14,35 @@ class BluetoothManager {
 public:
     BluetoothManager();
     
-    bool begin(EventQueue* eventQueue);
-    void update(const SystemStatus& status);  // Periodic status updates
-    bool isConnected() const { return deviceConnected; }
+    bool begin();
+    void update();
     
-    // Send status updates to connected client
-    void sendStatus(const SystemStatus& status);
+    void sendStatus();
     void sendAck(uint8_t commandCode);  // Immediate ACK feedback
+
+    void setEventQueuePtr(EventQueue* ptr) { eventQueuePtr = ptr; }
+    void setCurrentStatusPtr(SystemStatus* ptr) { currentStatus = ptr; }
     
 private:
     EventQueue* eventQueuePtr;
-    bool deviceConnected = false;
+    SystemStatus* currentStatus;
+    bool statusSubscribed = false;
     unsigned long lastStatusSent = 0;  // Track last status update time
-    static constexpr unsigned long STATUS_UPDATE_INTERVAL = 5000;  // Send status every 5 seconds
     
     NimBLEServer* pServer;
     NimBLEService* pService;
     NimBLECharacteristic* pCommandChar;
     NimBLECharacteristic* pStatusChar;
+
+    void setStatusChar();
     
     // Server callbacks
     class ServerCallbacks : public NimBLEServerCallbacks {
-        BluetoothManager* manager;
+        bool* deviceConnectedPtr;
     public:
-        ServerCallbacks(BluetoothManager* mgr) : manager(mgr) {}
-        void onConnect(NimBLEServer* pServer) override;
-        void onDisconnect(NimBLEServer* pServer) override;
+        ServerCallbacks(bool* ptr) : deviceConnectedPtr(ptr) {}
+        void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override;
+        void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override;
     };
     
     // Command characteristic callbacks
@@ -47,11 +50,21 @@ private:
         BluetoothManager* manager;
     public:
         CommandCallbacks(BluetoothManager* mgr) : manager(mgr) {}
-        void onWrite(NimBLECharacteristic* pCharacteristic) override;
+        void onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override;
+    };
+
+
+    class StatusCallbacks : public NimBLECharacteristicCallbacks {
+        BluetoothManager* manager;
+    public:
+        StatusCallbacks(BluetoothManager* mgr) : manager(mgr) {}
+        void onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) override;
+        void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override;
     };
     
     friend class ServerCallbacks;
     friend class CommandCallbacks;
+    friend class StatusCallbacks;
 };
 
 #endif // BLUETOOTH_MANAGER_H

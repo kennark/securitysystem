@@ -70,7 +70,9 @@ bool SecuritySystem::begin() {
     
     #if ENABLE_BLUETOOTH
     Serial.println("[INIT] Bluetooth enabled");
-    if (!bluetooth.begin(&eventQueue)) {
+    bluetooth.setEventQueuePtr(&eventQueue);
+    bluetooth.setCurrentStatusPtr(&status);
+    if (!bluetooth.begin()) {
         Serial.println("[ERROR] Bluetooth init failed, continuing...");
     }
     #else
@@ -145,12 +147,12 @@ void SecuritySystem::update() {
     // Send periodic BLE status
     #if ENABLE_BLUETOOTH
     if (config.bluetoothEnabled) {
-        bluetooth.update(status);
+        bluetooth.update();
     }
     #endif
     
     // Check idle timeout and enter sleep if conditions are met (only when ARMED)
-    if (status.state == SecurityState::ARMED && !status.alarmActive) {
+    if (status.state == SecurityState::ARMED && !status.alarmActive && !status.bluetoothConnected) {
         sleep.update();
     }
 }

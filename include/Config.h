@@ -51,9 +51,10 @@
 
 // Bluetooth Configuration
 #define BLE_DEVICE_NAME "EBike_Security"
-#define BLE_SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b" // These should be auto generated on first boot
+#define BLE_SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define BLE_COMMAND_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define BLE_STATUS_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a9"
+#define STATUS_UPDATE_INTERVAL 5000UL       // Time in ms between status updates when a client is connected
 
 // Power Management
 #define SLEEP_TIMEOUT 10000UL          // Inactivity timeout before entering light sleep
@@ -63,7 +64,7 @@
 #define ENABLE_BUZZER 1                 // Test buzzer patterns
 #define ENABLE_RELAY_CONTROL 1          // Test relay power control
 #define ENABLE_RF_RECEIVER 1            // Disabled until RF module ready
-#define ENABLE_BLUETOOTH 0              // Test BLE communication
+#define ENABLE_BLUETOOTH 1              // Test BLE communication
 #define ENABLE_TOUCH_WAKE 1             // Test touch pin wake functionality
 #define ENABLE_LIGHT_SLEEP 1            // Test sleep/wake cycles
 

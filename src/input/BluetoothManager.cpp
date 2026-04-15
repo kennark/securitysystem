@@ -10,9 +10,7 @@ BluetoothManager::BluetoothManager()
       pStatusChar(nullptr) {
 }
 
-bool BluetoothManager::begin(EventQueue* eventQueue) {
-    eventQueuePtr = eventQueue;
-    
+bool BluetoothManager::begin() {
     if (!eventQueuePtr) {
         Serial.println("ERROR: EventQueue pointer is null!");
         return false;
@@ -29,7 +27,7 @@ bool BluetoothManager::begin(EventQueue* eventQueue) {
     }
     
     // Set server callbacks
-    pServer->setCallbacks(new ServerCallbacks(this));
+    pServer->setCallbacks(new ServerCallbacks(&currentStatus->bluetoothConnected));
     
     // Create BLE service
     pService = pServer->createService(BLE_SERVICE_UUID);
@@ -50,54 +48,44 @@ bool BluetoothManager::begin(EventQueue* eventQueue) {
         BLE_STATUS_UUID,
         NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
     );
-    
-    // Start the service
-    pService->start();
+
+    pStatusChar->setCallbacks(new StatusCallbacks(this));
     
     // Start advertising
     NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
+    pAdvertising->setName(BLE_DEVICE_NAME);
     pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
-    pAdvertising->setScanResponse(true);
-    pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone compatibility
-    pAdvertising->setMaxPreferred(0x12);
-    NimBLEDevice::startAdvertising();
+    pAdvertising->addServiceUUID(BLE_COMMAND_UUID);
+    pAdvertising->addServiceUUID(BLE_STATUS_UUID);
+    pAdvertising->enableScanResponse(true);
+    // pAdvertising->setPreferredParams(0x06, 0x12); // functions that help with iPhone compatibility
+    pAdvertising->start();
     
     Serial.println("BLE initialized: " + String(BLE_DEVICE_NAME));
     
     return true;
 }
 
-void BluetoothManager::update(const SystemStatus& status) {
-    if (!deviceConnected) {
+void BluetoothManager::update() {
+    if (!currentStatus || !currentStatus->bluetoothConnected) {
         return;
     }
     
     unsigned long now = millis();
     
     // Send full status every 5 seconds
-    if (now - lastStatusSent >= STATUS_UPDATE_INTERVAL) {
-        sendStatus(status);
+    if (statusSubscribed && now - lastStatusSent >= STATUS_UPDATE_INTERVAL) {
+        sendStatus();
         lastStatusSent = now;
     }
 }
 
-void BluetoothManager::sendStatus(const SystemStatus& status) {
-    if (!pStatusChar || !deviceConnected) {
+void BluetoothManager::sendStatus() {
+    if (!pStatusChar || !currentStatus || !currentStatus->bluetoothConnected) {
         return;
     }
     
-    // Pack status: [state | alarm_count | relay_state | battery% | timestamp_high | timestamp_low]
-    uint8_t statusData[6];
-    statusData[0] = (uint8_t)status.state;
-    statusData[1] = (uint8_t)(status.alarmTriggerCount & 0xFF);
-    statusData[2] = status.relayState ? 1 : 0;
-    statusData[3] = status.batteryPercent;
-    // Add timestamp for phone to track freshness
-    uint32_t ts = millis();
-    statusData[4] = (ts >> 8) & 0xFF;
-    statusData[5] = ts & 0xFF;
-    
-    pStatusChar->setValue(statusData, 6);
+    setStatusChar();
     pStatusChar->notify();
     
     if (DEBUG_MODE) {
@@ -105,8 +93,23 @@ void BluetoothManager::sendStatus(const SystemStatus& status) {
     }
 }
 
+void BluetoothManager::setStatusChar() {
+    // Pack status: [state | alarm_count | relay_state | battery% | timestamp_high | timestamp_low]
+    uint8_t statusData[6];
+    statusData[0] = (uint8_t)currentStatus->state;
+    statusData[1] = (uint8_t)(currentStatus->alarmTriggerCount & 0xFF);
+    statusData[2] = currentStatus->relayState ? 1 : 0;
+    statusData[3] = currentStatus->batteryPercent;
+    // Add timestamp for phone to track freshness
+    uint32_t ts = millis();
+    statusData[4] = (ts >> 8) & 0xFF;
+    statusData[5] = ts & 0xFF;
+    
+    pStatusChar->setValue(statusData, 6);
+}
+
 void BluetoothManager::sendAck(uint8_t commandCode) {
-    if (!pStatusChar || !deviceConnected) {
+    if (!pStatusChar || !currentStatus || !currentStatus->bluetoothConnected) {
         return;
     }
     
@@ -123,19 +126,13 @@ void BluetoothManager::sendAck(uint8_t commandCode) {
 
 // ==================== SERVER CALLBACKS ====================
 
-void BluetoothManager::ServerCallbacks::onConnect(NimBLEServer* pServer) {
-    manager->deviceConnected = true;
+void BluetoothManager::ServerCallbacks::onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) {
+    *deviceConnectedPtr = true;
     Serial.println("BLE Client connected");
-    
-    // Post connection event to queue
-    if (manager->eventQueuePtr) {
-        Event connEvent(EventType::BLE_COMMAND, (uint32_t)CommandType::GET_STATUS);
-        manager->eventQueuePtr->enqueue(connEvent);
-    }
 }
 
-void BluetoothManager::ServerCallbacks::onDisconnect(NimBLEServer* pServer) {
-    manager->deviceConnected = false;
+void BluetoothManager::ServerCallbacks::onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) {
+    *deviceConnectedPtr = false;
     Serial.println("BLE Client disconnected");
     
     // Start advertising again
@@ -144,7 +141,7 @@ void BluetoothManager::ServerCallbacks::onDisconnect(NimBLEServer* pServer) {
 
 // ==================== COMMAND CHARACTERISTIC CALLBACKS ====================
 
-void BluetoothManager::CommandCallbacks::onWrite(NimBLECharacteristic* pCharacteristic) {
+void BluetoothManager::CommandCallbacks::onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) {
     std::string rxValue = pCharacteristic->getValue();
     
     if (rxValue.length() == 0) {
@@ -160,11 +157,42 @@ void BluetoothManager::CommandCallbacks::onWrite(NimBLECharacteristic* pCharacte
     }
     
     // IMMEDIATE ACK - fast feedback to phone
-    manager->sendAck(commandByte);
+    // manager->sendAck(commandByte);
     
     // Post command event to queue for processing
     if (manager->eventQueuePtr) {
         Event cmdEvent(EventType::BLE_COMMAND, (uint32_t)cmd);
         manager->eventQueuePtr->enqueue(cmdEvent);
     }
+}
+
+// ==================== STATUS CHARACTERISTIC CALLBACKS ====================
+
+void BluetoothManager::StatusCallbacks::onRead(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) {
+    // Optionally handle read requests if needed
+    Serial.println("BLE Status characteristic read");
+
+    manager->setStatusChar();
+}
+
+/** Peer subscribed to notifications/indications */
+void BluetoothManager::StatusCallbacks::onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) {
+    std::string str  = "Client ID: ";
+    str             += connInfo.getConnHandle();
+    str             += " Address: ";
+    str             += connInfo.getAddress().toString();
+    if (subValue == 0) {
+        str += " Unsubscribed to ";
+    } else if (subValue == 1) {
+        str += " Subscribed to notifications for ";
+    } else if (subValue == 2) {
+        str += " Subscribed to indications for ";
+    } else if (subValue == 3) {
+        str += " Subscribed to notifications and indications for ";
+    }
+    str += std::string(pCharacteristic->getUUID());
+
+    manager->statusSubscribed = (subValue == 1);
+
+    Serial.printf("%s\n", str.c_str());
 }
