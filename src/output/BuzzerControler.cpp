@@ -52,10 +52,10 @@ BuzzerController::BuzzerController()
 
 void BuzzerController::begin() {
     // Configure ledC PWM for the buzzer
-    ledcAttachPin(PIN_BUZZER, BUZZER_PWM_CHANNEL);
+    ledcAttach(PIN_BUZZER, 1000, 8);
     
     // Initialize buzzer as off
-    ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
+    ledcWriteTone(PIN_BUZZER, 0);
     
     Serial.println("Buzzer initialized on pin " + String(PIN_BUZZER) + 
                    " (PWM channel " + String(BUZZER_PWM_CHANNEL) + ")");
@@ -100,12 +100,12 @@ void BuzzerController::playChirpBlocking(BuzzerPattern pattern) {
     }
     
     for (int i = 0; i < length; i++) {
-        ledcWriteTone(BUZZER_PWM_CHANNEL, sequence[i].frequency);
+        ledcWriteTone(PIN_BUZZER, sequence[i].frequency);
         delay(BUZZER_NOTE_SPEED);
     }
     
     // Silence the buzzer
-    ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
+    ledcWriteTone(PIN_BUZZER, 0);
     
     Serial.println("Chirp pattern completed");
 }
@@ -127,7 +127,7 @@ void BuzzerController::stopSound() {
             *alarmActivePtr = false;
         }
         playing = false;
-        ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
+        ledcWriteTone(PIN_BUZZER, 0);
         Serial.println("Sound stopped");
     }
 }
@@ -171,7 +171,7 @@ void BuzzerController::selectSequenceForPattern(BuzzerPattern pattern, const Buz
 void BuzzerController::playSequence(const BuzzerStep* sequence, int length) {
     if (sequence == nullptr || length <= 0) {
         playing = false;
-        ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
+        ledcWriteTone(PIN_BUZZER, 0);
         return;
     }
     
@@ -182,13 +182,13 @@ void BuzzerController::playSequence(const BuzzerStep* sequence, int length) {
     playing = true;
     
     // Set initial frequency
-    ledcWriteTone(BUZZER_PWM_CHANNEL, currentSequence[0].frequency);
+    ledcWriteTone(PIN_BUZZER, currentSequence[0].frequency);
 }
 
 void BuzzerController::updateSequence() {
     if (currentSequence == nullptr || sequenceLength == 0) {
         playing = false;
-        ledcWriteTone(BUZZER_PWM_CHANNEL, 0);
+        ledcWriteTone(PIN_BUZZER, 0);
         return;
     }
 
@@ -204,7 +204,7 @@ void BuzzerController::updateSequence() {
     else if (currentStep != currentStepIndex) {
         // Step changed, update frequency
         currentStepIndex = currentStep;
-        ledcWriteTone(BUZZER_PWM_CHANNEL, currentSequence[currentStepIndex].frequency);
+        ledcWriteTone(PIN_BUZZER, currentSequence[currentStepIndex].frequency);
     }
 }
 
@@ -223,9 +223,9 @@ void BuzzerController::updateAlarm() {
 
         int currentStep = elapsed / BUZZER_NOTE_SPEED;
         if (currentStep % 2 == 0) {
-            ledcWriteTone(BUZZER_PWM_CHANNEL, BUZZER_FREQ_ALARM);
+            ledcWriteTone(PIN_BUZZER, BUZZER_FREQ_ALARM);
         } else {
-            ledcWriteTone(BUZZER_PWM_CHANNEL, BUZZER_FREQ_ALARM2);
+            ledcWriteTone(PIN_BUZZER, BUZZER_FREQ_ALARM2);
         }
     }
 }

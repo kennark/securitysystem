@@ -48,7 +48,9 @@ private:
     // Components
     MotionSensor motionSensor;
     RFReceiver rfReceiver;
+    #if ENABLE_TOUCH_WAKE
     TouchSensor touchSensor;
+    #endif
     BuzzerController buzzer;
     BluetoothManager bluetooth;
     RelayController relay;
@@ -71,8 +73,6 @@ private:
     void handleBluetoothInput();
     void handleMotionInput();
     
-    // Wake Management
-    void enterLightSleep();
     
     // Helper Methods
     void loadConfig();
@@ -85,8 +85,5 @@ private:
 
 // Global SecuritySystem instance for ISR access
 extern SecuritySystem* g_securitySystem;
-
-// ISR Handlers
-void IRAM_ATTR onTouchWake();
 
 #endif // SECURITY_SYSTEM_H

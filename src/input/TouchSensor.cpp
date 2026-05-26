@@ -1,5 +1,7 @@
 #include "input/TouchSensor.h"
 
+#if ENABLE_TOUCH_WAKE
+
 TouchSensor* g_touchSensor = nullptr;
 
 void IRAM_ATTR onTouchWake() {
@@ -26,3 +28,5 @@ void TouchSensor::update() {
         if (DEBUG_MODE) Serial.println("[EVENT] Touch detected");
     }
 }
+
+#endif

@@ -21,8 +21,10 @@ void SleepManager::begin() {
     Serial.println(" (RF Receiver Alarm, rising edge)");
 
     // PIN_TOUCH_WAKE: Touch/Button pin for manual wake/disarm
-    esp_sleep_enable_touchpad_wakeup();
-    Serial.println("[SLEEP] Wake source configured: TOUCH");
+    #if ENABLE_TOUCH_WAKE
+        esp_sleep_enable_touchpad_wakeup();
+        Serial.println("[SLEEP] Wake source configured: TOUCH");
+    #endif
 
     esp_sleep_enable_gpio_wakeup();
     
@@ -79,8 +81,10 @@ void SleepManager::enterSleep() {
         Serial.print("[SLEEP] System will wake on GPIO");
         Serial.print(MPU_INT_PIN);
         Serial.print(" (motion) or GPIO");
-        Serial.print(PIN_TOUCH_WAKE);
-        Serial.println(" (touch)");
+        #if ENABLE_TOUCH_WAKE
+            Serial.print(PIN_TOUCH_WAKE);
+            Serial.println(" (touch)");
+        #endif
     }
     
     // Enter ESP32 light sleep

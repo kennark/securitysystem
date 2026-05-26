@@ -13,7 +13,7 @@ class EventQueue;
 
 class MotionSensor {
 public:
-    MotionSensor(int sda = PIN_SDA, int scl = PIN_SCL);
+    MotionSensor();
 
     bool begin();
     bool calibrate();

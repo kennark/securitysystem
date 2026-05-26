@@ -35,7 +35,9 @@ bool SecuritySystem::begin() {
     g_securitySystem = this;
     g_rfReceiver = &rfReceiver;
     g_motionSensor = &motionSensor;
-    g_touchSensor = &touchSensor;
+    #if ENABLE_TOUCH_WAKE
+        g_touchSensor = &touchSensor;
+    #endif
     
     // Initialize components with feature toggles
     #if ENABLE_MOTION_SENSOR
@@ -92,6 +94,8 @@ bool SecuritySystem::begin() {
     touchSensor.setEventQueue(&eventQueue);
     Serial.print("[INIT] Touch interrupt attached to GPIO");
     Serial.println(PIN_TOUCH_WAKE);
+    #else
+    Serial.println("[SKIP] Touch Wake disabled");
     #endif
     
     #if ENABLE_LIGHT_SLEEP
@@ -101,6 +105,8 @@ bool SecuritySystem::begin() {
     sleep.setSleepTimeout(&config.sleepTimeout);
     sleep.begin();
     Serial.println("[INIT] Light sleep configured");
+    #else
+    Serial.println("[SKIP] Light sleep disabled");
     #endif
     
     

@@ -10,8 +10,7 @@ void IRAM_ATTR onMotionWake() {
     }
 }
 
-MotionSensor::MotionSensor(int sda, int scl) {
-    Wire.begin(sda, scl);
+MotionSensor::MotionSensor() {
 }
 
 bool MotionSensor::begin() {

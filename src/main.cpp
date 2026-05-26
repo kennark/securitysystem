@@ -9,6 +9,10 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     Serial.println("Starting E-Bike Security System...");
+
+    #if ENABLE_MOTION_SENSOR
+      Wire.begin(PIN_SDA, PIN_SCL);
+    #endif
     // Initialize the security system
     if (!securitySystem.begin()) {
         Serial.println("CRITICAL ERROR: System initialization failed!");
